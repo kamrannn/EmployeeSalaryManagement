@@ -54,17 +54,17 @@ public class CSVHelper {
                 for (User existingUser : users
                 ) {
                     if (existingUser.getId().equalsIgnoreCase(user.getId())) {
-                        map.put("message", "Duplicate ID found in the csv file");
+                        map.put("message", "Duplicate ID's found in the csv file");
                         return map;
                     }
                 }
                 users.add(user);
             }
+            map.put("message", "");
             map.put("result", users);
             return map;
         } catch (IOException e) {
             map.put("Exception", e.getMessage());
-            map.put("ExceptionBoolean", 1);
             return map;
         }
     }

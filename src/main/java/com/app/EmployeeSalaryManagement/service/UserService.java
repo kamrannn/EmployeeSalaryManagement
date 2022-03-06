@@ -34,18 +34,12 @@ public class UserService {
     @Transactional
     public ResponseEntity<Object> save(MultipartFile file) {
         try {
-//            List<User> users = CSVHelper.csvToTutorials(file.getInputStream());
             List<User> users = new ArrayList<>();
-
             HashMap<String, Object> objectHashMap = CSVHelper.csvToTutorials(file.getInputStream());
             JSONObject jsonObject = new JSONObject(objectHashMap);
-
-            JSONArray jsonArrayMessage = jsonObject.getJSONArray("message");
-            JSONObject explrObjectMessage = jsonArrayMessage.getJSONObject(0);
-            if (!explrObjectMessage.getString("message").isEmpty()) {
-                return new ResponseEntity<>("There are some empty fields in the excel file", HttpStatus.BAD_REQUEST);
+            if (!jsonObject.getString("message").isEmpty()) {
+                return new ResponseEntity<>(jsonObject.getString("message"), HttpStatus.BAD_REQUEST);
             }
-
 
             JSONArray jsonArray = jsonObject.getJSONArray("result");
             for (int i = 0; i < jsonArray.length(); i++) {
