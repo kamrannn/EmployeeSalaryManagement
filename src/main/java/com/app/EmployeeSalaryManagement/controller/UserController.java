@@ -3,6 +3,7 @@ package com.app.EmployeeSalaryManagement.controller;
 import com.app.EmployeeSalaryManagement.helper.CSVHelper;
 import com.app.EmployeeSalaryManagement.message.ApiResponse;
 import com.app.EmployeeSalaryManagement.message.ResponseMessage;
+import com.app.EmployeeSalaryManagement.model.User;
 import com.app.EmployeeSalaryManagement.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -41,7 +42,22 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Object> getUserById(@PathVariable(name = "id") String userId) {
+    public ApiResponse getUserById(@PathVariable(name = "id") String userId) {
         return userService.getUserById(userId);
+    }
+
+    @PostMapping
+    public ApiResponse addUser(@RequestBody User user) {
+        return userService.addUser(user);
+    }
+
+    @PutMapping
+    public ApiResponse updateUser(@RequestBody User user) {
+        return userService.updateUser(user);
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse deleteUser(@PathVariable(name = "id") String userId) {
+        return userService.deleteUserById(userId);
     }
 }

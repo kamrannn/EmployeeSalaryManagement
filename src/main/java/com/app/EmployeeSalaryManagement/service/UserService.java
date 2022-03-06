@@ -19,18 +19,31 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * The type User service.
+ */
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
 
+    /**
+     * Instantiates a new User service.
+     *
+     * @param userRepository the user repository
+     */
     @Autowired
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Save Employee through CSV file.
+     *
+     * @param file the file
+     * @return the response entity
+     */
     @Transactional
     public ResponseEntity<Object> save(MultipartFile file) {
         try {
@@ -43,43 +56,35 @@ public class UserService {
 
             JSONArray jsonArray = jsonObject.getJSONArray("result");
             for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject explrObject = jsonArray.getJSONObject(i);
+                JSONObject userJsonObject = jsonArray.getJSONObject(i);
                 User user = new User();
-                user.setId(explrObject.getString("id"));
-                user.setLogin(explrObject.getString("login"));
-                user.setName(explrObject.getString("name"));
-                user.setSalary(explrObject.getDouble("salary"));
-                user.setStartDate(LocalDate.parse(explrObject.getString("startDate")));
+                user.setId(userJsonObject.getString("id"));
+                user.setLogin(userJsonObject.getString("login"));
+                user.setName(userJsonObject.getString("name"));
+                user.setSalary(userJsonObject.getDouble("salary"));
+                user.setStartDate(LocalDate.parse(userJsonObject.getString("startDate")));
                 users.add(user);
             }
-
-            for (User user : users
-            ) {
-                if (user.getId().equalsIgnoreCase("")) {
-                    return new ResponseEntity<>("Id is not Present in one of the fields", HttpStatus.OK);
-                } else if (user.getLogin().equalsIgnoreCase("")) {
-                    return new ResponseEntity<>("Login is not Present in one of the fields", HttpStatus.OK);
-                } else if (user.getName().equalsIgnoreCase("")) {
-                    return new ResponseEntity<>("Name is not Present in one of the fields", HttpStatus.OK);
-                } else if (user.getSalary().equals(null)) {
-                    return new ResponseEntity<>("Salary is not Present in one of the fields", HttpStatus.OK);
-                } else if (user.getStartDate().equals(null)) {
-                    return new ResponseEntity<>("Date is not Present in one of the fields", HttpStatus.OK);
-                } else {
-                    userRepository.save(user);
-                }
-            }
-            String message = "Uploaded the file successfully: " + file.getOriginalFilename();
+            userRepository.saveAll(users);
+            String message = "Uploaded all the students successfully by using file with name: " + file.getOriginalFilename();
             return new ResponseEntity<>(new ResponseMessage(message), HttpStatus.CREATED);
         } catch (IOException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
+    /**
+     * Gets all users.
+     *
+     * @param minSalary the min salary
+     * @param maxSalary the max salary
+     * @param offset    the offset
+     * @param limit     the limit
+     * @return the all users
+     */
     public ApiResponse getAllUsers(Double minSalary, Double maxSalary, Integer offset, Integer limit) {
         ApiResponse apiResponse = new ApiResponse();
         try {
-
             List<User> usersList = userRepository.findUserBySalaryBetweenOrderByIdAsc(minSalary, maxSalary);
             if (usersList.isEmpty()) {
                 apiResponse.setMessage("There is no user in the database");
@@ -125,16 +130,151 @@ public class UserService {
         }
     }
 
-    public ResponseEntity<Object> getUserById(String userId) {
+    /**
+     * Gets user by id.
+     *
+     * @param userId the user id
+     * @return the user by id
+     */
+    public ApiResponse getUserById(String userId) {
+        ApiResponse apiResponse = new ApiResponse();
         try {
-            Optional<User> user = userRepository.findById(userId);
-            if (user.isPresent()) {
-                return new ResponseEntity<>(user.get(), HttpStatus.OK);
+            User user = userRepository.findUserById(userId);
+            if (null != user) {
+                apiResponse.setResults(user);
+                apiResponse.setMessage("Successfully fetched the user against ID: " + userId);
             } else {
-                return new ResponseEntity<>("User not found against this Id", HttpStatus.OK);
+                apiResponse.setResults(null);
+                apiResponse.setMessage("User not found against this Id");
             }
+            apiResponse.setStatus(HttpStatus.OK.value());
+            return apiResponse;
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            apiResponse.setResults(null);
+            apiResponse.setMessage(e.getMessage());
+            apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            return apiResponse;
+        }
+    }
+
+    /**
+     * Add new User Service
+     *
+     * @param user the user
+     * @return the api response
+     */
+    public ApiResponse addUser(User user) {
+        ApiResponse apiResponse = new ApiResponse();
+        try {
+            if (user.getId().equalsIgnoreCase("")) {
+                apiResponse.setMessage("Id is not Present in one of the fields");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else if (user.getLogin().equalsIgnoreCase("")) {
+                apiResponse.setMessage("Login is not Present in one of the fields");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else if (user.getName().equalsIgnoreCase("")) {
+                apiResponse.setMessage("Name is not Present in one of the fields");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else if (user.getSalary().longValue() < 0) {
+                apiResponse.setMessage("Salary is not Present in one of the fields");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else if (user.getStartDate() == null) {
+                apiResponse.setMessage("Date is not Present in one of the fields");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else {
+                userRepository.save(user);
+                apiResponse.setResults(user);
+                apiResponse.setStatus(HttpStatus.CREATED.value());
+            }
+            return apiResponse;
+        } catch (Exception e) {
+            apiResponse.setResults(null);
+            apiResponse.setMessage(e.getMessage());
+            apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            return apiResponse;
+        }
+    }
+
+    /**
+     * Update the User Service.
+     *
+     * @param user the user
+     * @return the api response
+     */
+    public ApiResponse updateUser(User user) {
+        ApiResponse apiResponse = new ApiResponse();
+        try {
+            if (user.getId().equalsIgnoreCase("")) {
+                apiResponse.setMessage("Id is not Present in one of the fields");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else if (user.getLogin().equalsIgnoreCase("")) {
+                apiResponse.setMessage("Login is not Present in one of the fields");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else if (user.getName().equalsIgnoreCase("")) {
+                apiResponse.setMessage("Name is not Present in one of the fields");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else if (user.getSalary().longValue() < 0) {
+                apiResponse.setMessage("Salary is not Present in one of the fields");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else if (user.getStartDate() == null) {
+                apiResponse.setMessage("Kindly check the date");
+                apiResponse.setResults(null);
+                apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            } else {
+                User existingUser = userRepository.findUserById(user.getId());
+                if (null != existingUser) {
+                    existingUser.setLogin(user.getLogin());
+                    existingUser.setName(user.getName());
+                    existingUser.setSalary(user.getSalary());
+                    existingUser.setStartDate(user.getStartDate());
+                    userRepository.save(existingUser);
+                    apiResponse.setResults(existingUser);
+                    apiResponse.setStatus(HttpStatus.CREATED.value());
+                    apiResponse.setMessage("Successfully Updated");
+                }
+            }
+            return apiResponse;
+        } catch (Exception e) {
+            apiResponse.setResults(null);
+            apiResponse.setMessage(e.getMessage());
+            apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            return apiResponse;
+        }
+    }
+
+    /**
+     * Delete user by id api response.
+     *
+     * @param userId the user id
+     * @return the api response
+     */
+    public ApiResponse deleteUserById(String userId) {
+        ApiResponse apiResponse = new ApiResponse();
+        try {
+            User user = userRepository.findUserById(userId);
+            if (null != user) {
+                userRepository.delete(user);
+                apiResponse.setMessage("Successfully deleted");
+            } else {
+                apiResponse.setMessage("No such employee");
+            }
+            apiResponse.setResults(null);
+            apiResponse.setStatus(HttpStatus.OK.value());
+            return apiResponse;
+        } catch (Exception e) {
+            apiResponse.setResults(null);
+            apiResponse.setMessage(e.getMessage());
+            apiResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            return apiResponse;
         }
     }
 }

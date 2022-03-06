@@ -56,6 +56,9 @@ public class CSVHelper {
                     if (existingUser.getId().equalsIgnoreCase(user.getId())) {
                         map.put("message", "Duplicate ID's found in the csv file");
                         return map;
+                    } else if (existingUser.getLogin().equalsIgnoreCase(user.getLogin())) {
+                        map.put("message", "Duplicate Login's found in the csv file");
+                        return map;
                     }
                 }
                 users.add(user);
